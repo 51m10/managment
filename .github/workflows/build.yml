@@ -20,4 +20,6 @@ jobs:
           pip install flet openpyxl pymupdf
 
       - name: Build APK
-        run: flet build apk FactoryDocApp/main.py --yes
+        run: |
+          cd FactoryDocApp
+          flet build apk main.py --yes

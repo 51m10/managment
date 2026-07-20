@@ -19,14 +19,7 @@ jobs:
           pip install --upgrade pip
           pip install flet openpyxl pymupdf
 
-      - name: Prepare build environment
-        run: |
-          mkdir -p temp_build
-          cp FactoryDocApp/main.py temp_build/
-          # اگر فایل‌های دیگری مثل flet.toml دارید، اینجا کپی کنید
-          # cp FactoryDocApp/flet.toml temp_build/ 
-
       - name: Build APK
         run: |
-          cd temp_build
-          flet build apk main.py --yes
+          cd src
+          flet build apk --yes

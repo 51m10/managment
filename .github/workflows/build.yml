@@ -16,8 +16,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip install --upgrade pip
-          pip install flet
-          pip install -r requirements.txt
+          pip install flet openpyxl pymupdf
 
       - name: Build APK
-        run: flet build apk main.py
+        run: flet build apk FactoryDocApp/main.py

@@ -17,10 +17,8 @@ jobs:
       - name: Install dependencies
         run: |
           pip install --upgrade pip
+          pip install --upgrade flet
           pip install -r src/requirements.txt
-
-      - name: Accept Android licenses
-        run: yes | flutter doctor --android-licenses || true
 
       - name: Build APK
         run: |

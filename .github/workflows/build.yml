@@ -30,20 +30,18 @@ jobs:
       - name: Install dependencies
         run: |
           pip install --upgrade pip
-          pip install flet openpyxl pymupdf pyinstaller
+          pip install flet openpyxl pymupdf
 
       - name: Accept Android Licenses
         run: yes | flutter doctor --android-licenses || true
 
-      - name: Create Flet App Package and Build
+      - name: Build APK
         run: |
           cd src
-          flet pack main.py --name FactoryDocApp
-          cd build/flutter
-          flutter build apk --release
+          flet build apk --yes
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: app-release
-          path: src/build/flutter/build/app/outputs/flutter-apk/app-release.apk
+          path: src/build/apk/app-release.apk

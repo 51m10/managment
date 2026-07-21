@@ -30,7 +30,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip install --upgrade pip
-          pip install flet openpyxl pymupdf
+          pip install flet openpyxl pymupdf pyinstaller
 
       - name: Accept Android Licenses
         run: yes | flutter doctor --android-licenses || true
@@ -38,10 +38,7 @@ jobs:
       - name: Create Flet App Package and Build
         run: |
           cd src
-          # ساخت پکیج استاندارد فلت برای فلاتر
           flet pack main.py --name FactoryDocApp
-          
-          # رفتن به پوشه فلاترِ ایجاد شده و ساخت APK
           cd build/flutter
           flutter build apk --release
 

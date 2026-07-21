@@ -17,18 +17,15 @@ jobs:
       - name: Install dependencies
         run: |
           pip install --upgrade pip
-          pip install flet openpyxl pymupdf
+          pip install -r src/requirements.txt
 
       - name: Build APK
         run: |
           cd src
           flet build apk --yes
-          # دستور زیر محتویات پوشه build را لیست می‌کند تا مسیر دقیق را ببینیم
-          find . -name "*.apk"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: app-release
-          path: src/build/apk/ # یا هر مسیری که در خروجی مرحله قبل می‌بینید
-          if-no-files-found: warn
+          path: src/build/apk/app-release.apk

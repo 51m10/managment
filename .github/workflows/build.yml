@@ -40,8 +40,14 @@ jobs:
           cd src
           flet build apk --yes
 
+      - name: Find and Move APK
+        run: |
+          # پیدا کردن فایل APK در کل پروژه و انتقال آن به یک پوشه مشخص
+          mkdir -p final_apk
+          find . -name "*.apk" -exec cp {} final_apk/ \;
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: app-release
-          path: build/apk/app-release.apk
+          path: src/final_apk/*.apk

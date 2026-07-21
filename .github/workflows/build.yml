@@ -35,15 +35,13 @@ jobs:
       - name: Accept Android Licenses
         run: yes | flutter doctor --android-licenses || true
 
-      - name: Build with Flutter directly
+      - name: Build APK
         run: |
           cd src
-          # ساخت پکیج فلاتر با پایتون جاسازی شده
-          flet pack main.py --project-name FactoryDocApp
-          flutter build apk --release
+          flet build apk --yes
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: app-release
-          path: src/build/app/outputs/flutter-apk/app-release.apk
+          path: src/build/apk/app-release.apk

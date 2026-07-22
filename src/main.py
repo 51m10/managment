@@ -8,13 +8,10 @@ def main(page: ft.Page):
     page.vertical_alignment = ft.MainAxisAlignment.CENTER
     page.horizontal_alignment = ft.CrossAxisAlignment.CENTER
     page.padding = 20
-    
-    # تنظیم جهت صفحه برای زبان فارسی
     page.rtl = True
 
     status_text = ft.Text("مسیر فایل اکسل یا PDF را در کادر زیر وارد کنید:", size=14, weight=ft.FontWeight.BOLD)
     
-    # کادر متنی برای ورود مسیر فایل (بدون استفاده از FilePicker مشکل‌ساز)
     file_path_input = ft.TextField(
         hint_text="مثال: /storage/emulated/0/Download/data.xlsx",
         expand=True,
@@ -52,10 +49,9 @@ def main(page: ft.Page):
             status_text.value = f"خطا در پردازش فایل: {str(ex)}"
         page.update()
 
-    # استفاده از ElevatedButton استاندارد بدون خطای پارامتر text
-    process_button = ft.ElevatedButton(
-        text="پردازش فایل",
-        icon=ft.Icons.CHECK,
+    # استفاده از TextButton سازگار با نسخه پکیج موجود در بیلد
+    process_button = ft.TextButton(
+        content=ft.Row([ft.Icon(ft.Icons.CHECK), ft.Text("پردازش فایل")], spacing=5),
         on_click=process_file_from_path
     )
 
@@ -74,9 +70,8 @@ def main(page: ft.Page):
             status_text.value = "لطفاً متنی را برای جستجو وارد کنید."
         page.update()
 
-    search_button = ft.ElevatedButton(
-        text="جستجو",
-        icon=ft.Icons.SEARCH,
+    search_button = ft.TextButton(
+        content=ft.Row([ft.Icon(ft.Icons.SEARCH), ft.Text("جستجو")], spacing=5),
         on_click=on_search_click
     )
 

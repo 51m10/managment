@@ -14,8 +14,7 @@ def main(page: ft.Page):
 
     status_text = ft.Text("مسیر فایل اکسل یا PDF را در کادر زیر وارد کنید:", size=14, weight=ft.FontWeight.BOLD)
     
-    # --- روش جایگزین: فیلد متنی برای دریافت مسیر فایل ---
-    # به جای FilePicker، کاربر مسیر فایل را اینجا کپی/پیست می‌کند.
+    # کادر متنی برای ورود مسیر فایل (بدون استفاده از FilePicker مشکل‌ساز)
     file_path_input = ft.TextField(
         hint_text="مثال: /storage/emulated/0/Download/data.xlsx",
         expand=True,
@@ -34,7 +33,6 @@ def main(page: ft.Page):
         
         try:
             if file_path.endswith('.xlsx'):
-                # بررسی وجود فایل
                 if not os.path.exists(file_path):
                     status_text.value = "فایل اکسل در مسیر داده شده یافت نشد."
                 else:
@@ -54,15 +52,13 @@ def main(page: ft.Page):
             status_text.value = f"خطا در پردازش فایل: {str(ex)}"
         page.update()
 
-    # دکمه‌ای برای پردازش فایل پس از ورود مسیر
+    # استفاده از ElevatedButton استاندارد بدون خطای پارامتر text
     process_button = ft.ElevatedButton(
         text="پردازش فایل",
         icon=ft.Icons.CHECK,
         on_click=process_file_from_path
     )
-    # --- پایان روش جایگزین ---
 
-    # کادر جستجو (همانطور که بود)
     search_input = ft.TextField(
         hint_text="جستجو در اسناد...",
         prefix_icon=ft.Icons.SEARCH,
@@ -78,8 +74,9 @@ def main(page: ft.Page):
             status_text.value = "لطفاً متنی را برای جستجو وارد کنید."
         page.update()
 
-    search_button = ft.TextButton(
-        content=ft.Row([ft.Icon(ft.Icons.SEARCH), ft.Text("جستجو")], spacing=5),
+    search_button = ft.ElevatedButton(
+        text="جستجو",
+        icon=ft.Icons.SEARCH,
         on_click=on_search_click
     )
 
@@ -88,18 +85,14 @@ def main(page: ft.Page):
         alignment=ft.MainAxisAlignment.CENTER,
     )
 
-    # اضافه کردن کنترل‌ها به صفحه
     page.add(
         ft.Column(
             controls=[
                 ft.Text("سیستم مدیریت اسناد کارخانه", size=20, weight=ft.FontWeight.BOLD),
                 ft.Divider(),
-                
-                # بخش ورودی مسیر فایل (جایگزین FilePicker شد)
                 ft.Text("انتخاب فایل:", size=16),
                 file_path_input,
                 process_button,
-                
                 ft.Container(height=20),
                 status_text,
             ],

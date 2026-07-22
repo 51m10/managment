@@ -29,8 +29,8 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install --upgrade pip
-          pip install flet openpyxl
+          python -m pip install --upgrade pip
+          pip install flet openpyxl pypdf
 
       - name: Accept Android Licenses
         run: yes | flutter doctor --android-licenses || true

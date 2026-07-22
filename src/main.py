@@ -1,6 +1,7 @@
 import flet as ft
 import openpyxl
 from pypdf import PdfReader
+import os
 
 def main(page: ft.Page):
     page.title = "Factory Doc App"
@@ -25,10 +26,9 @@ def main(page: ft.Page):
             status_text.value = "لطفاً متنی را برای جستجو وارد کنید."
         page.update()
 
-    # تعریف صریح دکمه با ft.ElevatedButton
-    search_button = ft.ElevatedButton(
-        text="جستجو",
-        icon=ft.Icons.SEARCH,
+    # استفاده از ساختار امن TextButton با محتوا
+    search_button = ft.TextButton(
+        content=ft.Row([ft.Icon(ft.Icons.SEARCH), ft.Text("جستجو")], spacing=5),
         on_click=on_search_click
     )
 
@@ -61,9 +61,8 @@ def main(page: ft.Page):
     file_picker = ft.FilePicker(on_result=on_file_picked)
     page.overlay.append(file_picker)
 
-    upload_button = ft.ElevatedButton(
-        text="انتخاب فایل اکسل یا PDF",
-        icon=ft.Icons.UPLOAD_FILE,
+    upload_button = ft.TextButton(
+        content=ft.Row([ft.Icon(ft.Icons.UPLOAD_FILE), ft.Text("انتخاب فایل اکسل یا PDF")], spacing=5),
         on_click=lambda _: file_picker.pick_files(allowed_extensions=["xlsx", "pdf"])
     )
 

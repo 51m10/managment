@@ -1,9 +1,0 @@
-[project]
-name = "factory_doc_app"
-version = "1.0.0"
-dependencies = [
-    "flet",
-    "openpyxl",
-    "pypdf"
-]
-requires-python = ">=3.10"

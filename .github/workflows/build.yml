@@ -19,7 +19,7 @@ jobs:
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.19.x'
+          flutter-version: '3.44.4'
           channel: 'stable'
           cache: true
 
@@ -30,7 +30,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install --upgrade flet flet-cli openpyxl pypdf
+          pip install --upgrade flet flet-cli
 
       - name: Accept Android Licenses
         run: yes | flutter doctor --android-licenses || true
@@ -38,14 +38,13 @@ jobs:
       - name: Build APK
         run: |
           cd src
-          flet build apk --project c:\FactoryDocApp\src --yes || flet build apk --yes
+          flet build apk --yes
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: app-release
           path: |
-            src/build/s/outputs/apk/release/*.apk
             src/build/**/outputs/apk/release/*.apk
             **/*.apk
             *.apk

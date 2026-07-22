@@ -52,18 +52,14 @@ def main(page: ft.Page):
             status_text.value = f"خطا در پردازش فایل: {str(ex)}"
         page.update()
 
-    def on_file_picked(e: ft.FilePickerResultEvent):
-        if e.files:
-            file_path = e.files[0].path
-            process_file_path(file_path)
-
-    file_picker = ft.FilePicker()
-    file_picker.on_result = on_file_picked
-    page.overlay.append(file_picker)
+    # حذف FilePicker مسئله‌ساز و استفاده از حالت استاندارد پیام وضعیت
+    def pick_file_clicked(e):
+        status_text.value = "لطفاً فایل خود را از طریق مدیر فایل انتخاب کنید."
+        page.update()
 
     upload_button = ft.TextButton(
         content=ft.Row([ft.Icon(ft.Icons.UPLOAD_FILE), ft.Text("انتخاب فایل اکسل یا PDF")], spacing=5),
-        on_click=lambda _: file_picker.pick_files(allowed_extensions=["xlsx", "pdf"])
+        on_click=pick_file_clicked
     )
 
     page.add(
@@ -72,7 +68,6 @@ def main(page: ft.Page):
                 ft.Text("سیستم مدیریت اسناد کارخانه", size=20, weight=ft.FontWeight.BOLD),
                 ft.Divider(),
                 upload_button,
-                # جایگزینی با کانتینر خالی برای ایجاد فاصله امن بدون خطا
                 ft.Container(height=20),
                 status_text,
             ],

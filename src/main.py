@@ -1,7 +1,6 @@
 import flet as ft
 import openpyxl
 from pypdf import PdfReader
-import os
 
 def main(page: ft.Page):
     page.title = "Factory Doc App"
@@ -26,6 +25,7 @@ def main(page: ft.Page):
             status_text.value = "لطفاً متنی را برای جستجو وارد کنید."
         page.update()
 
+    # تعریف صریح دکمه با ft.ElevatedButton
     search_button = ft.ElevatedButton(
         text="جستجو",
         icon=ft.Icons.SEARCH,

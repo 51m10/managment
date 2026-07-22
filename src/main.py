@@ -1,8 +1,8 @@
-﻿import flet as ft
-import openpyxl
 import os
 import sys
-import fitz  # PyMuPDF
+import flet as ft
+import openpyxl
+from pypdf import PdfReader
 
 # تابعی برای پیدا کردن مسیر فایل‌ها در کنار برنامه
 def get_path(filename):
@@ -41,15 +41,32 @@ def main(page: ft.Page):
         page.add(back_btn, ft.Text(f"مستندات: {item['name']}", size=20, weight="bold"))
         
         if os.path.exists(PDF_FILE):
-            doc = fitz.open(PDF_FILE)
             images_col = ft.Column(scroll="always", expand=True)
-            mat = fitz.Matrix(2, 2) 
-            
-            for i in range(item['start'] - 1, item['end']): 
-                pix = doc.load_page(i).get_pixmap(matrix=mat)
-                img_path = f"page_{i}.png"
-                pix.save(img_path)
-                images_col.controls.append(ft.Image(src=img_path, width=800))
+            try:
+                # استفاده از pypdf برای خواندن و استخراج محتوای صفحات به صورت متن یا مدیریت آن
+                reader = PdfReader(PDF_FILE)
+                start_idx = item['start'] - 1
+                end_idx = min(item['end'], len(reader.pages))
+                
+                for i in range(start_idx, end_idx):
+                    page_obj = reader.pages[i]
+                    page_text = page_obj.extract_text() or f"صفحه {i + 1}"
+                    
+                    # نمایش محتوای صفحه به صورت کارت‌های متنی یا ساختار یافته برای جلوگیری از خطای باینری fitz روی اندروید
+                    images_col.controls.append(
+                        ft.Card(
+                            content=ft.Container(
+                                content=ft.Column([
+                                    ft.Text(f"--- صفحه {i + 1} ---", weight="bold", color=ft.colors.BLUE),
+                                    ft.Text(page_text[:500] + ("..." if len(page_text) > 500 else ""))
+                                ]),
+                                padding=15
+                            )
+                        )
+                    )
+            except Exception as ex:
+                images_col.controls.append(ft.Text(f"خطا در پردازش فایل PDF: {ex}"))
+                
             page.add(images_col)
         else:
             page.add(ft.Text("فایل PDF پیدا نشد!"))
@@ -74,9 +91,20 @@ def main(page: ft.Page):
             results.update()
 
         search_field = ft.TextField(label="جستجو در نام دستگاه‌ها...", on_change=update_list)
+        
+        # بارگذاری اولیه لیست
+        for item in get_data():
+            results.controls.append(
+                ft.Card(content=ft.ListTile(
+                    title=ft.Text(item['name'], weight="bold"),
+                    subtitle=ft.Text(f"صفحات {item['start']} تا {item['end']}"),
+                    on_click=lambda e, i=item: show_doc_pages(i)
+                ))
+            )
+        
         page.add(search_field, results)
         page.update()
 
     build_initial_page()
 
-ft.run(main)
+ft.app(target=main)

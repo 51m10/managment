@@ -26,7 +26,6 @@ def main(page: ft.Page):
             status_text.value = "لطفاً متنی را برای جستجو وارد کنید."
         page.update()
 
-    # استفاده از ساختار امن TextButton با محتوا
     search_button = ft.TextButton(
         content=ft.Row([ft.Icon(ft.Icons.SEARCH), ft.Text("جستجو")], spacing=5),
         on_click=on_search_click
@@ -58,7 +57,9 @@ def main(page: ft.Page):
             file_path = e.files[0].path
             process_file_path(file_path)
 
-    file_picker = ft.FilePicker(on_result=on_file_picked)
+    # تعریف استاندارد FilePicker و اختصاص on_result به صورت جداگانه
+    file_picker = ft.FilePicker()
+    file_picker.on_result = on_file_picked
     page.overlay.append(file_picker)
 
     upload_button = ft.TextButton(

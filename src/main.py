@@ -8,6 +8,9 @@ def main(page: ft.Page):
     page.vertical_alignment = ft.MainAxisAlignment.CENTER
     page.horizontal_alignment = ft.CrossAxisAlignment.CENTER
     page.padding = 20
+    
+    # تنظیم جهت صفحه برای زبان فارسی
+    page.rtl = True
 
     status_text = ft.Text("آماده برای بارگذاری و پردازش اسناد...", size=14, weight=ft.FontWeight.BOLD)
     
@@ -36,6 +39,7 @@ def main(page: ft.Page):
         alignment=ft.MainAxisAlignment.CENTER,
     )
 
+    # تابع پردازش فایل اکسل و PDF
     def process_file_path(file_path):
         try:
             if file_path.endswith('.xlsx'):
@@ -52,14 +56,23 @@ def main(page: ft.Page):
             status_text.value = f"خطا در پردازش فایل: {str(ex)}"
         page.update()
 
-    # حذف FilePicker مسئله‌ساز و استفاده از حالت استاندارد پیام وضعیت
-    def pick_file_clicked(e):
-        status_text.value = "لطفاً فایل خود را از طریق مدیر فایل انتخاب کنید."
-        page.update()
+    # رویداد انتخاب فایل از حافظه گوشی
+    def on_file_picker_result(e: ft.FilePickerResultEvent):
+        if e.files:
+            file_path = e.files[0].path
+            process_file_path(file_path)
+        else:
+            status_text.value = "انتخاب فایل لغو شد."
+            page.update()
+
+    # ایجاد FilePicker و اتصال آن به صفحه
+    file_picker = ft.FilePicker()
+    file_picker.on_result = on_file_picker_result
+    page.overlay.append(file_picker)
 
     upload_button = ft.TextButton(
         content=ft.Row([ft.Icon(ft.Icons.UPLOAD_FILE), ft.Text("انتخاب فایل اکسل یا PDF")], spacing=5),
-        on_click=pick_file_clicked
+        on_click=lambda _: file_picker.pick_files(allowed_extensions=["xlsx", "pdf"])
     )
 
     page.add(

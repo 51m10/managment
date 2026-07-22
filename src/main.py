@@ -57,7 +57,6 @@ def main(page: ft.Page):
             file_path = e.files[0].path
             process_file_path(file_path)
 
-    # تعریف استاندارد FilePicker و اختصاص on_result به صورت جداگانه
     file_picker = ft.FilePicker()
     file_picker.on_result = on_file_picked
     page.overlay.append(file_picker)
@@ -73,7 +72,8 @@ def main(page: ft.Page):
                 ft.Text("سیستم مدیریت اسناد کارخانه", size=20, weight=ft.FontWeight.BOLD),
                 ft.Divider(),
                 upload_button,
-                ft.VerticalDivider(height=20),
+                # جایگزینی با کانتینر خالی برای ایجاد فاصله امن بدون خطا
+                ft.Container(height=20),
                 status_text,
             ],
             alignment=ft.MainAxisAlignment.CENTER,

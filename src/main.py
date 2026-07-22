@@ -12,8 +12,57 @@ def main(page: ft.Page):
     # تنظیم جهت صفحه برای زبان فارسی
     page.rtl = True
 
-    status_text = ft.Text("آماده برای بارگذاری و پردازش اسناد...", size=14, weight=ft.FontWeight.BOLD)
+    status_text = ft.Text("مسیر فایل اکسل یا PDF را در کادر زیر وارد کنید:", size=14, weight=ft.FontWeight.BOLD)
     
+    # --- روش جایگزین: فیلد متنی برای دریافت مسیر فایل ---
+    # به جای FilePicker، کاربر مسیر فایل را اینجا کپی/پیست می‌کند.
+    file_path_input = ft.TextField(
+        hint_text="مثال: /storage/emulated/0/Download/data.xlsx",
+        expand=True,
+        border_radius=10
+    )
+
+    def process_file_from_path(e):
+        file_path = file_path_input.value.strip()
+        if not file_path:
+            status_text.value = "لطفاً مسیر فایل را وارد کنید."
+            page.update()
+            return
+
+        status_text.value = f"در حال پردازش فایل: {os.path.basename(file_path)}"
+        page.update()
+        
+        try:
+            if file_path.endswith('.xlsx'):
+                # بررسی وجود فایل
+                if not os.path.exists(file_path):
+                    status_text.value = "فایل اکسل در مسیر داده شده یافت نشد."
+                else:
+                    wb = openpyxl.load_workbook(file_path, read_only=True)
+                    sheet_names = wb.sheetnames
+                    status_text.value = f"فایل اکسل بار شد. شیت‌ها: {', '.join(sheet_names)}"
+            elif file_path.endswith('.pdf'):
+                if not os.path.exists(file_path):
+                    status_text.value = "فایل PDF در مسیر داده شده یافت نشد."
+                else:
+                    reader = PdfReader(file_path)
+                    num_pages = len(reader.pages)
+                    status_text.value = f"فایل PDF بار شد. تعداد صفحات: {num_pages}"
+            else:
+                status_text.value = "فرمت فایل پشتیبانی نمی‌شود (فقط .xlsx یا .pdf)."
+        except Exception as ex:
+            status_text.value = f"خطا در پردازش فایل: {str(ex)}"
+        page.update()
+
+    # دکمه‌ای برای پردازش فایل پس از ورود مسیر
+    process_button = ft.ElevatedButton(
+        text="پردازش فایل",
+        icon=ft.Icons.CHECK,
+        on_click=process_file_from_path
+    )
+    # --- پایان روش جایگزین ---
+
+    # کادر جستجو (همانطور که بود)
     search_input = ft.TextField(
         hint_text="جستجو در اسناد...",
         prefix_icon=ft.Icons.SEARCH,
@@ -39,48 +88,18 @@ def main(page: ft.Page):
         alignment=ft.MainAxisAlignment.CENTER,
     )
 
-    # تابع پردازش فایل اکسل و PDF
-    def process_file_path(file_path):
-        try:
-            if file_path.endswith('.xlsx'):
-                wb = openpyxl.load_workbook(file_path, read_only=True)
-                sheet_names = wb.sheetnames
-                status_text.value = f"فایل اکسل بار شد. شیت‌ها: {', '.join(sheet_names)}"
-            elif file_path.endswith('.pdf'):
-                reader = PdfReader(file_path)
-                num_pages = len(reader.pages)
-                status_text.value = f"فایل PDF بار شد. تعداد صفحات: {num_pages}"
-            else:
-                status_text.value = "فرمت فایل پشتیبانی نمی‌شود."
-        except Exception as ex:
-            status_text.value = f"خطا در پردازش فایل: {str(ex)}"
-        page.update()
-
-    # رویداد انتخاب فایل از حافظه گوشی
-    def on_file_picker_result(e: ft.FilePickerResultEvent):
-        if e.files:
-            file_path = e.files[0].path
-            process_file_path(file_path)
-        else:
-            status_text.value = "انتخاب فایل لغو شد."
-            page.update()
-
-    # ایجاد FilePicker و اتصال آن به صفحه
-    file_picker = ft.FilePicker()
-    file_picker.on_result = on_file_picker_result
-    page.overlay.append(file_picker)
-
-    upload_button = ft.TextButton(
-        content=ft.Row([ft.Icon(ft.Icons.UPLOAD_FILE), ft.Text("انتخاب فایل اکسل یا PDF")], spacing=5),
-        on_click=lambda _: file_picker.pick_files(allowed_extensions=["xlsx", "pdf"])
-    )
-
+    # اضافه کردن کنترل‌ها به صفحه
     page.add(
         ft.Column(
             controls=[
                 ft.Text("سیستم مدیریت اسناد کارخانه", size=20, weight=ft.FontWeight.BOLD),
                 ft.Divider(),
-                upload_button,
+                
+                # بخش ورودی مسیر فایل (جایگزین FilePicker شد)
+                ft.Text("انتخاب فایل:", size=16),
+                file_path_input,
+                process_button,
+                
                 ft.Container(height=20),
                 status_text,
             ],

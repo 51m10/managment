@@ -1,0 +1,9 @@
+[project]
+name = "factorydocapp"
+version = "1.0.0"
+dependencies = [
+    "flet",
+    "openpyxl",
+    "pypdf"
+]
+requires-python = ">=3.10"

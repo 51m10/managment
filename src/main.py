@@ -10,12 +10,19 @@ def main(page: ft.Page):
     page.padding = 20
     page.rtl = True
 
-    status_text = ft.Text("لطفاً فایل شرکت را به پوشه اسناد اضافه کنید.", size=13, weight=ft.FontWeight.BOLD)
-    
-    docs_dir = page.get_app_storage_dir() if hasattr(page, 'get_app_storage_dir') else "."
-    if not os.path.exists(docs_dir):
-        os.makedirs(docs_dir, exist_ok=True)
+    # تعیین یک مسیر عمومی و در دسترس در حافظه داخلی (پوشه Download)
+    # اگر دسترسی محدود باشد، از پوشه داخلی خود اپ استفاده می‌کند
+    docs_dir = "/storage/emulated/0/Download/FactoryDocs"
+    try:
+        if not os.path.exists(docs_dir):
+            os.makedirs(docs_dir, exist_ok=True)
+    except Exception:
+        docs_dir = page.get_app_storage_dir() if hasattr(page, 'get_app_storage_dir') else "."
+        if not os.path.exists(docs_dir):
+            os.makedirs(docs_dir, exist_ok=True)
 
+    status_text = ft.Text(f"پوشه اسناد:\n{docs_dir}\nلطفاً فایل‌ها را اینجا قرار دهید.", size=12, weight=ft.FontWeight.BOLD)
+    
     company_dropdown = ft.Dropdown(
         label="انتخاب شرکت / فایل اسناد",
         hint_text="فایلی یافت نشد",
@@ -23,16 +30,19 @@ def main(page: ft.Page):
         border_radius=10
     )
 
-    def refresh_file_list():
+    def refresh_file_list(e=None):
         files = []
-        if os.path.exists(docs_dir):
-            files = [f for f in os.listdir(docs_dir) if f.endswith(('.xlsx', '.pdf'))]
+        try:
+            if os.path.exists(docs_dir):
+                files = [f for f in os.listdir(docs_dir) if f.endswith(('.xlsx', '.pdf'))]
+        except Exception:
+            files = []
         
         company_dropdown.options = [ft.dropdown.Option(f) for f in files]
         if files:
-            status_text.value = f"تعداد {len(files)} فایل شرکت یافت شد."
+            status_text.value = f"تعداد {len(files)} فایل پیدا شد. مسیر:\n{docs_dir}"
         else:
-            status_text.value = f"هیچ فایلی در پوشه اسناد نیست. مسیر:\n{docs_dir}"
+            status_text.value = f"فایلی در این مسیر نیست:\n{docs_dir}"
         page.update()
 
     def process_selected_company_file(e):
@@ -50,13 +60,13 @@ def main(page: ft.Page):
             elif file_path.endswith('.pdf'):
                 reader = PdfReader(file_path)
                 status_text.value = f"فایل PDF '{selected_file}' بار شد. تعداد صفحات: {len(reader.pages)}"
-        except Exception as ex:
+        except Exception:
             status_text.value = "خطا در خواندن فایل شرکت."
         page.update()
 
     refresh_button = ft.TextButton(
         content=ft.Row([ft.Icon(ft.Icons.REFRESH), ft.Text("بارگذاری مجدد")], spacing=5),
-        on_click=lambda _: refresh_file_list()
+        on_click=refresh_file_list
     )
 
     select_button = ft.TextButton(
@@ -94,12 +104,12 @@ def main(page: ft.Page):
     page.add(
         ft.Column(
             controls=[
-                ft.Container(height=15),
-                ft.Text("سیستم مدیریت اسناد کارخانه", size=20, weight=ft.FontWeight.BOLD),
+                ft.Container(height=10),
+                ft.Text("سیستم مدیریت اسناد کارخانه", size=18, weight=ft.FontWeight.BOLD),
                 ft.Divider(),
                 company_dropdown,
                 ft.Row([refresh_button, select_button], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
-                ft.Container(height=10),
+                ft.Container(height=5),
                 status_text,
             ],
             alignment=ft.MainAxisAlignment.CENTER,

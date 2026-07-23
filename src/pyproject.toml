@@ -2,7 +2,7 @@
 name = "factorydocapp"
 version = "1.0.0"
 dependencies = [
-    "flet",
+    "flet==0.28.3",
     "openpyxl",
     "pypdf"
 ]

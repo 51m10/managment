@@ -1,4 +1,4 @@
-        import flet as ft
+import flet as ft
 import openpyxl
 from pypdf import PdfReader
 import os
@@ -12,12 +12,10 @@ def main(page: ft.Page):
 
     status_text = ft.Text("لطفاً فایل شرکت را به پوشه اسناد اضافه کنید.", size=13, weight=ft.FontWeight.BOLD)
     
-    # دریافت مسیر پوشه اختصاصی اسناد در حافظه داخلی اپلیکیشن (بدون نیاز به دسترسی‌های پیچیده اندروید)
     docs_dir = page.get_app_storage_dir() if hasattr(page, 'get_app_storage_dir') else "."
     if not os.path.exists(docs_dir):
         os.makedirs(docs_dir, exist_ok=True)
 
-    # لیست کشویی برای نمایش فایل‌های شرکت‌ها که بعد از نصب اضافه شده‌اند
     company_dropdown = ft.Dropdown(
         label="انتخاب شرکت / فایل اسناد",
         hint_text="فایلی یافت نشد",
@@ -26,7 +24,6 @@ def main(page: ft.Page):
     )
 
     def refresh_file_list():
-        # جستجوی فایل‌های اکسل و PDF در پوشه اسناد برنامه
         files = []
         if os.path.exists(docs_dir):
             files = [f for f in os.listdir(docs_dir) if f.endswith(('.xlsx', '.pdf'))]
@@ -54,23 +51,21 @@ def main(page: ft.Page):
                 reader = PdfReader(file_path)
                 status_text.value = f"فایل PDF '{selected_file}' بار شد. تعداد صفحات: {len(reader.pages)}"
         except Exception as ex:
-            status_text.value = f"خطا در خواندن فایل شرکت."
+            status_text.value = "خطا در خواندن فایل شرکت."
         page.update()
 
-    # دکمه‌ای برای به‌روزرسانی لیست فایل‌ها (اگر شرکت جدیدی فایلی ریخت)
     refresh_button = ft.TextButton(
-        content=ft.Row([ft.Icon(ft.Icons.REFRESH), ft.Text("بارگذاری مجدد لیست")], spacing=5),
+        content=ft.Row([ft.Icon(ft.Icons.REFRESH), ft.Text("بارگذاری مجدد")], spacing=5),
         on_click=lambda _: refresh_file_list()
     )
 
     select_button = ft.TextButton(
-        content=ft.Row([ft.Icon(ft.Icons.CHECK), ft.Text("انتخاب و پردازش فایل شرکت")], spacing=5),
+        content=ft.Row([ft.Icon(ft.Icons.CHECK), ft.Text("پردازش فایل")], spacing=5),
         on_click=process_selected_company_file
     )
 
-    # بخش جستجو برای مهندسان
     search_input = ft.TextField(
-        hint_text="جستجو در اسناد شرکت انتخاب شده...",
+        hint_text="جستجو در اسناد شرکت...",
         prefix_icon=ft.Icons.SEARCH,
         border_radius=10,
         expand=True
@@ -94,7 +89,6 @@ def main(page: ft.Page):
         alignment=ft.MainAxisAlignment.CENTER,
     )
 
-    # بارگذاری اولیه لیست در شروع برنامه
     refresh_file_list()
 
     page.add(

@@ -18,6 +18,9 @@ def main(page: ft.Page):
 
     status_text = ft.Text("لطفاً با دکمه زیر فایل شرکت را انتخاب کنید.", size=12, weight=ft.FontWeight.BOLD)
 
+    # اندازه فونت متن نتایج (قابل تغییر با دکمه‌های بزرگ‌نمایی/کوچک‌نمایی)
+    result_font_size = {"value": 14}
+
     company_dropdown = ft.Dropdown(
         label="انتخاب فایل اسناد",
         hint_text="فایلی انتخاب نشده است",
@@ -31,6 +34,8 @@ def main(page: ft.Page):
         scroll=ft.ScrollMode.AUTO,
         expand=True,
     )
+    # نگهداری رفرنس به کنترل‌های متنیِ نتایج، برای اعمال بزرگ‌نمایی/کوچک‌نمایی
+    result_text_controls = []
 
     def update_dropdown():
         files = []
@@ -163,6 +168,67 @@ def main(page: ft.Page):
 
         return None
 
+    def split_into_paragraphs(text):
+        """متن پاکسازی‌شده را بر اساس خط خالی به پاراگراف‌های جداگانه تقسیم می‌کند."""
+        parts = [p.strip() for p in text.split("\n\n")]
+        return [p for p in parts if p]
+
+    def build_highlighted_spans(text, query, base_size):
+        """
+        بخش‌هایی از متن که با عبارت جستجو مطابقت دارند را پررنگ و رنگی
+        نمایش می‌دهد تا پیدا کردنشان در متن راحت‌تر باشد.
+        """
+        spans = []
+        if not query:
+            spans.append(ft.TextSpan(text))
+            return spans
+
+        text_lower = text.lower()
+        query_lower = query.lower()
+        start = 0
+        found_any = False
+        while True:
+            idx = text_lower.find(query_lower, start)
+            if idx == -1:
+                spans.append(ft.TextSpan(text[start:]))
+                break
+            found_any = True
+            if idx > start:
+                spans.append(ft.TextSpan(text[start:idx]))
+            spans.append(
+                ft.TextSpan(
+                    text[idx:idx + len(query)],
+                    style=ft.TextStyle(
+                        weight=ft.FontWeight.BOLD,
+                        bgcolor=ft.Colors.YELLOW_200,
+                        color=ft.Colors.BLACK,
+                    ),
+                )
+            )
+            start = idx + len(query)
+        if not found_any:
+            return [ft.TextSpan(text)]
+        return spans
+
+    def clean_extracted_text(text):
+        """
+        خطوط خالی متوالی زیاد را به یک خط خالی کاهش می‌دهد تا فاصله‌های
+        بزرگ بین بخش‌های متن (که در فایل اصلی PDF وجود دارد) باعث نشود
+        محتوای واقعی خیلی پایین‌تر از دید کاربر بیفتد.
+        """
+        lines = [ln.rstrip() for ln in text.split("\n")]
+        cleaned = []
+        blank_run = 0
+        for ln in lines:
+            if ln.strip() == "":
+                blank_run += 1
+                if blank_run <= 1:
+                    cleaned.append("")
+            else:
+                blank_run = 0
+                cleaned.append(ln)
+        return "\n".join(cleaned).strip()
+
     def extract_pdf_pages_text(pdf_path, start_page, end_page):
         """متن صفحات start_page تا end_page (شماره صفحه از ۱ شروع می‌شود) را استخراج می‌کند."""
         reader = PdfReader(pdf_path)
@@ -172,13 +238,30 @@ def main(page: ft.Page):
 
         pages_text = []
         for page_num in range(start_page, end_page + 1):
-            text = reader.pages[page_num - 1].extract_text() or ""
-            pages_text.append((page_num, text.strip()))
+            raw_text = reader.pages[page_num - 1].extract_text() or ""
+            pages_text.append((page_num, clean_extracted_text(raw_text)))
         return pages_text
+
+    # هدر خلاصه‌ی نتیجه جستجو (اسم قطعه + بازه صفحات) با طراحی شیک‌تر از status_text ساده
+    search_result_header = ft.Container(
+        content=ft.Row(
+            controls=[
+                ft.Icon(ft.Icons.SETTINGS, size=18, color=ft.Colors.BLUE_700),
+                ft.Text("", weight=ft.FontWeight.BOLD, size=15, expand=True),
+            ],
+            spacing=8,
+        ),
+        padding=ft.padding.symmetric(horizontal=12, vertical=8),
+        bgcolor=ft.Colors.BLUE_50,
+        border_radius=8,
+        visible=False,
+    )
 
     def on_search(e):
         query = search_input.value.strip() if search_input.value else ""
         results_view.controls.clear()
+        result_text_controls.clear()
+        search_result_header.visible = False
 
         if not query:
             status_text.value = "عبارت جستجو خالی است."
@@ -212,30 +295,86 @@ def main(page: ft.Page):
             page.update()
             return
 
-        status_text.value = f"قطعه '{device_name}' — صفحات {start_page} تا {end_page} از '{pdf_filename}'"
+        status_text.value = ""
+        search_result_header.content.controls[1].value = (
+            f"قطعه «{device_name}»  •  صفحات {start_page} تا {end_page}"
+        )
+        search_result_header.visible = True
 
         for page_num, text in pages_text:
-            results_view.controls.append(
-                ft.Container(
-                    content=ft.Column(
-                        controls=[
-                            ft.Text(f"صفحه {page_num}", weight=ft.FontWeight.BOLD, size=13),
-                            ft.Text(text if text else "(متنی برای نمایش یافت نشد)", size=12, selectable=True),
-                        ]
-                    ),
-                    padding=10,
-                    border=ft.border.all(1, ft.Colors.OUTLINE),
-                    border_radius=8,
-                    margin=ft.margin.only(bottom=8),
-                )
-            )
+            paragraphs = split_into_paragraphs(text) or ["(متنی برای نمایش یافت نشد)"]
 
+            paragraph_controls = []
+            for para in paragraphs:
+                spans = build_highlighted_spans(para, query, result_font_size["value"])
+                para_text = ft.Text(
+                    spans=spans,
+                    size=result_font_size["value"],
+                    selectable=True,
+                    style=ft.TextStyle(height=1.7),
+                )
+                paragraph_controls.append(para_text)
+                result_text_controls.append(para_text)
+
+            page_card = ft.Container(
+                content=ft.Column(
+                    controls=[
+                        ft.Row(
+                            controls=[
+                                ft.Container(
+                                    content=ft.Text(
+                                        f"صفحه {page_num}",
+                                        size=12,
+                                        weight=ft.FontWeight.BOLD,
+                                        color=ft.Colors.WHITE,
+                                    ),
+                                    bgcolor=ft.Colors.BLUE_600,
+                                    padding=ft.padding.symmetric(horizontal=10, vertical=4),
+                                    border_radius=20,
+                                ),
+                            ],
+                            alignment=ft.MainAxisAlignment.START,
+                        ),
+                        ft.Divider(height=1, color=ft.Colors.OUTLINE_VARIANT),
+                        ft.Column(controls=paragraph_controls, spacing=10),
+                    ],
+                    spacing=10,
+                ),
+                padding=14,
+                bgcolor=ft.Colors.SURFACE,
+                border=ft.border.all(1, ft.Colors.OUTLINE_VARIANT),
+                border_radius=12,
+                margin=ft.margin.only(bottom=10),
+                shadow=ft.BoxShadow(
+                    spread_radius=0,
+                    blur_radius=6,
+                    color=ft.Colors.with_opacity(0.08, ft.Colors.BLACK),
+                    offset=ft.Offset(0, 2),
+                ),
+            )
+            results_view.controls.append(page_card)
+
+        page.update()
+
+    def zoom_in(e):
+        result_font_size["value"] = min(30, result_font_size["value"] + 2)
+        for t in result_text_controls:
+            t.size = result_font_size["value"]
+        page.update()
+
+    def zoom_out(e):
+        result_font_size["value"] = max(10, result_font_size["value"] - 2)
+        for t in result_text_controls:
+            t.size = result_font_size["value"]
         page.update()
 
     search_btn = ft.TextButton(
         content=ft.Row([ft.Icon(ft.Icons.SEARCH), ft.Text("جستجو")], spacing=5),
         on_click=on_search
     )
+
+    zoom_out_btn = ft.IconButton(icon=ft.Icons.ZOOM_OUT, on_click=zoom_out, tooltip="کوچک‌نمایی متن")
+    zoom_in_btn = ft.IconButton(icon=ft.Icons.ZOOM_IN, on_click=zoom_in, tooltip="بزرگ‌نمایی متن")
 
     update_dropdown()
 
@@ -251,6 +390,11 @@ def main(page: ft.Page):
                 status_text,
                 ft.Divider(),
                 ft.Row([search_input, search_btn]),
+                ft.Row(
+                    [ft.Text("اندازه متن نتایج:", size=12), zoom_out_btn, zoom_in_btn],
+                    alignment=ft.MainAxisAlignment.START,
+                ),
+                search_result_header,
                 results_view,
             ],
             alignment=ft.MainAxisAlignment.START,

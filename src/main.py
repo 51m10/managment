@@ -1,6 +1,7 @@
 import flet as ft
 import openpyxl
 from pypdf import PdfReader
+import shutil
 import os
 
 def main(page: ft.Page):
@@ -10,104 +11,107 @@ def main(page: ft.Page):
     page.padding = 20
     page.rtl = True
 
-    # تعیین مسیر ثابت و قابل دسترس در پوشه Download حافظه گوشی
-    docs_dir = "/storage/emulated/0/Download/FactoryDocs"
+    # ایجاد پوشه امن داخلی برای ذخیره فایل انتخاب شده
+    docs_dir = page.get_app_storage_dir() if hasattr(page, 'get_app_storage_dir') else "."
     if not os.path.exists(docs_dir):
-        try:
-            os.makedirs(docs_dir, exist_ok=True)
-        except Exception:
-            pass
+        os.makedirs(docs_dir, exist_ok=True)
 
-    status_text = ft.Text(f"فایل‌ها را در این مسیر کپی کنید:\nDownload / FactoryDocs", size=12, weight=ft.FontWeight.BOLD)
+    status_text = ft.Text("لطفاً با دکمه زیر فایل شرکت را انتخاب کنید.", size=12, weight=ft.FontWeight.BOLD)
     
     company_dropdown = ft.Dropdown(
-        label="انتخاب شرکت / فایل اسناد",
-        hint_text="فایلی یافت نشد",
+        label="انتخاب فایل اسناد",
+        hint_text="فایلی انتخاب نشده است",
         expand=True,
         border_radius=10
     )
 
-    def refresh_file_list(e=None):
+    def update_dropdown():
         files = []
-        target_path = docs_dir
-        
-        # بررسی در پوشه مشخص شده یا پوشه اصلی دانلود
-        if os.path.exists(target_path):
-            files = [f for f in os.listdir(target_path) if f.endswith(('.xlsx', '.pdf'))]
-        
-        if not files:
-            # اگر پوشه FactoryDocs خالی بود، پوشه اصلی Download را هم چک کند
-            alt_path = "/storage/emulated/0/Download"
-            if os.path.exists(alt_path):
-                files = [f for f in os.listdir(alt_path) if f.endswith(('.xlsx', '.pdf'))]
-                target_path = alt_path
-
+        if os.path.exists(docs_dir):
+            files = [f for f in os.listdir(docs_dir) if f.endswith(('.xlsx', '.pdf'))]
         company_dropdown.options = [ft.dropdown.Option(f) for f in files]
         if files:
-            status_text.value = f"تعداد {len(files)} فایل پیدا شد (مسیر: {target_path})"
+            status_text.value = f"تعداد {len(files)} فایل آماده است."
         else:
-            status_text.value = "فایلی یافت نشد. لطفاً فایل را در پوشه Download قرار دهید."
+            status_text.value = "فایلی انتخاب نشده است."
         page.update()
 
-    def process_selected_company_file(e):
+    # تعریف فایل‌پیکر و اضافه کردن به overlay صفحه (بخش حیاتی برای اندروید)
+    file_picker = ft.FilePicker()
+    page.overlay.append(file_picker)
+
+    def on_dialog_result(e: ft.FilePickerResultEvent):
+        if e.files and len(e.files) > 0:
+            selected_file = e.files[0]
+            source_path = selected_file.path
+            file_name = selected_file.name
+            
+            dest_path = os.path.join(docs_dir, file_name)
+            try:
+                # کپی کردن فایل انتخاب شده به پوشه داخلی اپ
+                if source_path != dest_path:
+                    shutil.copy(source_path, dest_path)
+                
+                update_dropdown()
+                company_dropdown.value = file_name
+                status_text.value = f"فایل '{file_name}' با موفقیت اضافه شد."
+            except Exception as ex:
+                status_text.value = "خطا در بارگذاری فایل انتخاب شده."
+            page.update()
+
+    file_picker.on_result = on_dialog_result
+
+    def process_file(e):
         selected_file = company_dropdown.value
         if not selected_file:
-            status_text.value = "لطفاً ابتدا یک شرکت/فایل را انتخاب کنید."
+            status_text.value = "لطفاً ابتدا یک فایل را انتخاب کنید."
             page.update()
             return
 
-        # جستجوی فایل در هر دو مسیر ممکن
         file_path = os.path.join(docs_dir, selected_file)
-        if not os.path.exists(file_path):
-            file_path = os.path.join("/storage/emulated/0/Download", selected_file)
-
         try:
             if file_path.endswith('.xlsx'):
                 wb = openpyxl.load_workbook(file_path, read_only=True)
-                status_text.value = f"فایل اکسل '{selected_file}' بار شد. شیت‌ها: {', '.join(wb.sheetnames)}"
+                status_text.value = f"فایل اکسل بار شد. شیت‌ها: {', '.join(wb.sheetnames)}"
             elif file_path.endswith('.pdf'):
                 reader = PdfReader(file_path)
-                status_text.value = f"فایل PDF '{selected_file}' بار شد. تعداد صفحات: {len(reader.pages)}"
+                status_text.value = f"فایل PDF بار شد. تعداد صفحات: {len(reader.pages)}"
         except Exception:
-            status_text.value = "خطا در خواندن فایل شرکت."
+            status_text.value = "خطا در خواندن محتوای فایل."
         page.update()
 
-    refresh_button = ft.TextButton(
-        content=ft.Row([ft.Icon(ft.Icons.REFRESH), ft.Text("بارگذاری مجدد")], spacing=5),
-        on_click=refresh_file_list
+    # دکمه فراخوانی فایل‌پیکر با فیلتر روی فایل‌های اکسل و PDF
+    pick_button = ft.TextButton(
+        content=ft.Row([ft.Icon(ft.Icons.FOLDER_OPEN), ft.Text("انتخاب فایل از گوشی")], spacing=5),
+        on_click=lambda _: file_picker.pick_files(
+            allow_multiple=False,
+            allowed_extensions=["xlsx", "pdf"]
+        )
     )
 
-    select_button = ft.TextButton(
+    process_button = ft.TextButton(
         content=ft.Row([ft.Icon(ft.Icons.CHECK), ft.Text("پردازش فایل")], spacing=5),
-        on_click=process_selected_company_file
+        on_click=process_file
     )
 
     search_input = ft.TextField(
-        hint_text="جستجو در اسناد شرکت...",
+        hint_text="جستجو در اسناد...",
         prefix_icon=ft.Icons.SEARCH,
         border_radius=10,
         expand=True
     )
 
-    def on_search_click(e):
-        query = search_input.value
-        if query:
-            status_text.value = f"در حال جستجوی مهندسی برای: '{query}'"
-        else:
-            status_text.value = "لطفاً عبارت جستجو را وارد کنید."
+    def on_search(e):
+        q = search_input.value
+        status_text.value = f"جستجو برای: '{q}'" if q else "عبارت جستجو خالی است."
         page.update()
 
-    search_button = ft.TextButton(
+    search_btn = ft.TextButton(
         content=ft.Row([ft.Icon(ft.Icons.SEARCH), ft.Text("جستجو")], spacing=5),
-        on_click=on_search_click
+        on_click=on_search
     )
 
-    bottom_search_bar = ft.Row(
-        controls=[search_input, search_button],
-        alignment=ft.MainAxisAlignment.CENTER,
-    )
-
-    refresh_file_list()
+    update_dropdown()
 
     page.add(
         ft.Column(
@@ -116,7 +120,7 @@ def main(page: ft.Page):
                 ft.Text("سیستم مدیریت اسناد کارخانه", size=18, weight=ft.FontWeight.BOLD),
                 ft.Divider(),
                 company_dropdown,
-                ft.Row([refresh_button, select_button], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
+                ft.Row([pick_button, process_button], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
                 ft.Container(height=5),
                 status_text,
             ],
@@ -124,7 +128,7 @@ def main(page: ft.Page):
             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
             expand=True
         ),
-        bottom_search_bar
+        ft.Row([search_input, search_btn])
     )
 
 ft.app(target=main)

@@ -10,18 +10,12 @@ def main(page: ft.Page):
     page.padding = 20
     page.rtl = True
 
-    # تعیین یک مسیر عمومی و در دسترس در حافظه داخلی (پوشه Download)
-    # اگر دسترسی محدود باشد، از پوشه داخلی خود اپ استفاده می‌کند
-    docs_dir = "/storage/emulated/0/Download/FactoryDocs"
-    try:
-        if not os.path.exists(docs_dir):
-            os.makedirs(docs_dir, exist_ok=True)
-    except Exception:
-        docs_dir = page.get_app_storage_dir() if hasattr(page, 'get_app_storage_dir') else "."
-        if not os.path.exists(docs_dir):
-            os.makedirs(docs_dir, exist_ok=True)
+    # استفاده از پوشه اختصاصی و کاملاً امنِ خودِ اپلیکیشن در اندروید
+    docs_dir = page.get_app_storage_dir() if hasattr(page, 'get_app_storage_dir') else "."
+    if not os.path.exists(docs_dir):
+        os.makedirs(docs_dir, exist_ok=True)
 
-    status_text = ft.Text(f"پوشه اسناد:\n{docs_dir}\nلطفاً فایل‌ها را اینجا قرار دهید.", size=12, weight=ft.FontWeight.BOLD)
+    status_text = ft.Text(f"پوشه داخلی اپ:\n{docs_dir}\nفایل‌ها را اینجا کپی کنید.", size=11, weight=ft.FontWeight.BOLD)
     
     company_dropdown = ft.Dropdown(
         label="انتخاب شرکت / فایل اسناد",
@@ -40,9 +34,9 @@ def main(page: ft.Page):
         
         company_dropdown.options = [ft.dropdown.Option(f) for f in files]
         if files:
-            status_text.value = f"تعداد {len(files)} فایل پیدا شد. مسیر:\n{docs_dir}"
+            status_text.value = f"تعداد {len(files)} فایل شرکت بارگذاری شد."
         else:
-            status_text.value = f"فایلی در این مسیر نیست:\n{docs_dir}"
+            status_text.value = f"پوشه خالی است. فایل‌ها را در مسیر زیر قرار دهید:\n{docs_dir}"
         page.update()
 
     def process_selected_company_file(e):

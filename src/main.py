@@ -10,12 +10,15 @@ def main(page: ft.Page):
     page.padding = 20
     page.rtl = True
 
-    # استفاده از پوشه اختصاصی و کاملاً امنِ خودِ اپلیکیشن در اندروید
-    docs_dir = page.get_app_storage_dir() if hasattr(page, 'get_app_storage_dir') else "."
+    # تعیین مسیر ثابت و قابل دسترس در پوشه Download حافظه گوشی
+    docs_dir = "/storage/emulated/0/Download/FactoryDocs"
     if not os.path.exists(docs_dir):
-        os.makedirs(docs_dir, exist_ok=True)
+        try:
+            os.makedirs(docs_dir, exist_ok=True)
+        except Exception:
+            pass
 
-    status_text = ft.Text(f"پوشه داخلی اپ:\n{docs_dir}\nفایل‌ها را اینجا کپی کنید.", size=11, weight=ft.FontWeight.BOLD)
+    status_text = ft.Text(f"فایل‌ها را در این مسیر کپی کنید:\nDownload / FactoryDocs", size=12, weight=ft.FontWeight.BOLD)
     
     company_dropdown = ft.Dropdown(
         label="انتخاب شرکت / فایل اسناد",
@@ -26,17 +29,24 @@ def main(page: ft.Page):
 
     def refresh_file_list(e=None):
         files = []
-        try:
-            if os.path.exists(docs_dir):
-                files = [f for f in os.listdir(docs_dir) if f.endswith(('.xlsx', '.pdf'))]
-        except Exception:
-            files = []
+        target_path = docs_dir
         
+        # بررسی در پوشه مشخص شده یا پوشه اصلی دانلود
+        if os.path.exists(target_path):
+            files = [f for f in os.listdir(target_path) if f.endswith(('.xlsx', '.pdf'))]
+        
+        if not files:
+            # اگر پوشه FactoryDocs خالی بود، پوشه اصلی Download را هم چک کند
+            alt_path = "/storage/emulated/0/Download"
+            if os.path.exists(alt_path):
+                files = [f for f in os.listdir(alt_path) if f.endswith(('.xlsx', '.pdf'))]
+                target_path = alt_path
+
         company_dropdown.options = [ft.dropdown.Option(f) for f in files]
         if files:
-            status_text.value = f"تعداد {len(files)} فایل شرکت بارگذاری شد."
+            status_text.value = f"تعداد {len(files)} فایل پیدا شد (مسیر: {target_path})"
         else:
-            status_text.value = f"پوشه خالی است. فایل‌ها را در مسیر زیر قرار دهید:\n{docs_dir}"
+            status_text.value = "فایلی یافت نشد. لطفاً فایل را در پوشه Download قرار دهید."
         page.update()
 
     def process_selected_company_file(e):
@@ -46,7 +56,11 @@ def main(page: ft.Page):
             page.update()
             return
 
+        # جستجوی فایل در هر دو مسیر ممکن
         file_path = os.path.join(docs_dir, selected_file)
+        if not os.path.exists(file_path):
+            file_path = os.path.join("/storage/emulated/0/Download", selected_file)
+
         try:
             if file_path.endswith('.xlsx'):
                 wb = openpyxl.load_workbook(file_path, read_only=True)
